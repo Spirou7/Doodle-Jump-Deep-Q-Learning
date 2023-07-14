@@ -11,6 +11,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 import numpy as np
+import pandas as pd
 counter = 0
 q_values1 = [0.0, 0.0, 0.0]
 high_score = 0
@@ -62,7 +63,7 @@ class QAgent:
             state_tensor = torch.FloatTensor(state).unsqueeze(0)
             q_values = self.q_network(state_tensor)
             q_values1 = q_values.squeeze().tolist()
-            write_text(str(q_values), (0,0))
+            #write_text(str(q_values), (0,0))
             return torch.argmax(q_values).item()
 
     def update_q_values(self, state, action, next_state, reward, done):
@@ -270,6 +271,7 @@ def get_current_reward(platform_status, action):
     global pm
     global memory
     global counter
+    global episodes
     reward = 0
     # determine which way it's moving relative to it's platform
     if(action == 1 and player.rect.left < pm.platforms[player.highest_platform_index + 1].rect.left):
@@ -290,6 +292,16 @@ def get_current_reward(platform_status, action):
     if(platform_status == "new_platform"):
         repeat_bounce_count = 0
         reward += 5
+
+        if(counter >= 100):
+            episodes.append(player.highest_platform_index)
+            player = Player()
+            pm = PlatformManager()
+            player.rect.left = pm.platforms[0].rect.left
+            memory = ReplayMemory(memory.memory.maxlen)
+            reward -= 10
+            counter = 0
+            export_episodes_to_csv(episodes)
     
     # if the player jumped on the same platform
     elif(platform_status == "same_platform"):
@@ -299,12 +311,14 @@ def get_current_reward(platform_status, action):
     
     # if the player fell off the platform
     if(player.rect.top < pm.platforms[player.highest_platform_index].rect.top):
+        episodes.append(player.highest_platform_index)
         player = Player()
         pm = PlatformManager()
         player.rect.left = pm.platforms[0].rect.left
         memory = ReplayMemory(memory.memory.maxlen)
         reward -= 10
         counter = 0
+        export_episodes_to_csv(episodes)
 
     return reward
 
@@ -323,6 +337,21 @@ def perform_memory_update(agent, replay_memory):
 
     agent.update_target_network()
 
+def export_episodes_to_csv(episodes):
+    data = pd.DataFrame()
+    data['score'] = episodes
+
+    data.to_csv('export.csv')
+    display_graph(episodes)
+
+def display_graph(episodes):
+    plt.clf()
+    plt.xlabel("Episodes")
+    plt.ylabel("Scores")
+    s = pd.Series(episodes)
+    s.plot.line()
+    plt.draw()
+    plt.pause(0.001)
 def plot_bar(q_value, x_position):
 
     height = q_value * 1250
@@ -342,7 +371,21 @@ def plot_q_values(q_values):
     else:
         plot_bar(0, screen_width)
         plot_bar(second - first, screen_width + 100)
+    # plot_bar(q_values[0], screen_width)
+    # plot_bar(q_values[1], screen_width + 100)
+    # plot_bar(q_values[2], screen_width + 200)
 
+
+
+    # plt.clf()  # Clear the previous plot
+    # actions = ['Left', 'Stay', 'Right']
+    # plt.bar(actions, q_values)
+    # plt.ylim([-2, 2])  # Set the y-axis limits according to your Q-value range
+    # plt.xlabel('Actions')
+    # plt.ylabel('Q-Values')
+    # plt.title('Q-Values')
+    # plt.draw()
+    # plt.pause(0.001)
 Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
 
 # screen configuration
@@ -394,6 +437,9 @@ player.rect.left = pm.platforms[0].rect.left
 fig, ax = plt.subplots()
 
 font = pygame.font.Font(None, 36) 
+
+episodes = []
+
 # Game loop
 running = True
 while running:
