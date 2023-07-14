@@ -342,21 +342,7 @@ def plot_q_values(q_values):
     else:
         plot_bar(0, screen_width)
         plot_bar(second - first, screen_width + 100)
-    # plot_bar(q_values[0], screen_width)
-    # plot_bar(q_values[1], screen_width + 100)
-    # plot_bar(q_values[2], screen_width + 200)
 
-
-
-    # plt.clf()  # Clear the previous plot
-    # actions = ['Left', 'Stay', 'Right']
-    # plt.bar(actions, q_values)
-    # plt.ylim([-2, 2])  # Set the y-axis limits according to your Q-value range
-    # plt.xlabel('Actions')
-    # plt.ylabel('Q-Values')
-    # plt.title('Q-Values')
-    # plt.draw()
-    # plt.pause(0.001)
 Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
 
 # screen configuration
